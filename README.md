@@ -110,17 +110,73 @@ Nenhuma linha usa `both` nem o curinga `#` sozinho: `#` traria o tráfego de tod
 
 ## 6. Como reproduzir
 
-Pré-requisitos: Docker Desktop, Postman (ou Newman), um cliente MQTT (HiveMQ WebSocket Client) e uma conta no Wokwi ou uma ESP32 com MicroPython.
+### 6.1 Pré-requisitos
 
-1. **Clone o repositório** e entre na pasta `plataforma/`.
-2. **Confira a ponte:** em `plataforma/mosquitto/mosquitto.conf`, o `remote_clientid` e as 3 linhas `topic` usam a API key `unifdclementeEstufa`.
-3. **Suba o ambiente:** `docker compose up -d`, depois `docker compose ps`. Devem aparecer 9 contêineres `healthy`.
-4. **Verifique a ponte:** `docker compose logs mosquitto` deve mostrar `Connecting bridge hivemq` uma única vez.
-5. **Teste a ponte nos dois sentidos:** com `docker exec -it mosquitto mosquitto_sub -v -t "#"` aberto, publique `oi` em `/json/unifdclementeEstufa/estufa001/attrs` pelo HiveMQ WebSocket Client: a mensagem aparece no terminal. Depois rode `docker exec mosquitto mosquitto_pub -t "/unifdclementeEstufa/estufa001/cmd" -m oi`: a mensagem aparece no Web Client (assinando `/unifdclementeEstufa/#`).
-6. **Grave o firmware:** abra o projeto do Wokwi (link no topo) ou grave `firmware/main_esqueleto.py` como `main.py` na ESP32 (preencha `SSID` e `SENHA`). O Shell deve mostrar `MQTT conectado` e uma linha `medidas -> {...}` a cada 3 s.
-7. **Importe a coleção** `postman/Projeto 2.postman_collection.json` e confira a variável `apikey` = `unifdclementeEstufa`.
-8. **Rode a coleção** com a estufa ligada, na ordem das pastas: 0 (reset), Etapa 1 (ambiente), Etapa 2 (grupo e dispositivo), Etapa 3 (comandos), Etapa 4 (subscrições e painel). No terminal: `npx newman run "postman/Projeto 2.postman_collection.json"`.
-9. **Grafana:** em http://localhost:3000 (`admin`/`admin`), crie a fonte de dados MySQL (host `mysql-db:3306`, banco `fei`, usuário `grafana`, senha `grafana2026`) e importe `plataforma/painel-estufa.json` em *Dashboards → New → Import*. O painel "Estufa inteligente" deve mostrar as medidas sendo atualizadas a cada 5 s.
+| Item | Detalhe |
+| --- | --- |
+| Docker Desktop | com WSL 2 no Windows; cerca de **6 GB livres** em disco para as imagens e os bancos |
+| Git | para clonar o repositório |
+| Node.js LTS | só para rodar os testes pelo terminal com o Newman (`npx`) |
+| Navegador | com uma conta no Wokwi (ou uma ESP32 com MicroPython e o Thonny) |
+| Portas livres | 1026, 1883, 3000, 3001, 3306, 4041, 5050, 5080, 7896 e 27017 |
+| Rede | precisa permitir saída TCP na porta **1883** até `broker.hivemq.com`, pois é por ela que a ponte funciona |
+
+Para testar a rede no PowerShell: `Test-NetConnection broker.hivemq.com -Port 1883` deve terminar com `TcpTestSucceeded : True`. Redes de faculdade e de empresa costumam bloquear essa porta; nesse caso, use o roteador do celular.
+
+### 6.2 Subir a plataforma
+
+```powershell
+git clone https://github.com/CleitinAbacat/projeto2-DanielBorrachinaClemente-unifdclementeEstufa.git
+cd "projeto2-DanielBorrachinaClemente-unifdclementeEstufa/Projeto 2 - Material complementar/plataforma"
+docker compose pull      # baixa cerca de 4 GB; faça antes, em uma rede boa
+docker compose up -d
+docker compose ps        # repita até os 9 contêineres aparecerem como healthy
+```
+
+A ponte deve aparecer conectada: `docker compose logs mosquitto` mostra `Connecting bridge hivemq (broker.hivemq.com:1883)`.
+
+O Grafana já sobe configurado: a fonte de dados MySQL (`plataforma/grafana/datasources/mysql.yml`) e o painel "Estufa inteligente" (`plataforma/painel-estufa.json`) são carregados automaticamente.
+
+### 6.3 Ligar a estufa
+
+1. Abra o projeto do Wokwi (link no topo) e clique em **Start**. Para usar uma ESP32 real, grave `firmware/main_esqueleto.py` como `main.py` e preencha `SSID` e `SENHA`.
+2. O Serial Monitor deve mostrar `MQTT conectado` e uma linha `medidas -> {...}` a cada 3 s.
+3. Deixe a aba do Wokwi **visível** durante toda a demonstração: em segundo plano o navegador desacelera a simulação e as medidas atrasam.
+
+### 6.4 Provisionar e testar
+
+A coleção começa apagando tudo (pasta 0) e refaz o provisionamento do zero: grupo de serviço, dispositivo, comandos e as duas subscrições. Por isso ela serve tanto para preparar o ambiente quanto para testá-lo. Rode com a estufa ligada:
+
+```powershell
+cd ../postman
+npx -y newman@6.2.1 run "Projeto 2.postman_collection.json"
+```
+
+O resultado esperado é **47 requisições e 125 asserções sem falhas**. Alternativa: importar a coleção no Postman e usar o *Runner*, conferindo a variável `apikey` = `unifdclementeEstufa`.
+
+### 6.5 Conferir
+
+| O quê | Onde | Esperado |
+| --- | --- | --- |
+| Entidade no Orion | `curl http://localhost:1026/v2/entities -H "fiware-service: fei" -H "fiware-servicepath: /estufa"` | os 7 atributos de medida atualizando |
+| Painel | http://localhost:3000 (`admin`/`admin`) → *Dashboards* → *Estufa inteligente* | gráficos atualizando a cada 5 s |
+| Alerta de solo seco | `docker compose logs -f consumidor` e baixe o potenciômetro do solo no Wokwi para menos de 30 % | uma notificação com `soilMoisture` |
+| Comandos | requisições 3.x da coleção (relé, servo, intervalo, envio) | o relé/servo muda no Wokwi e o `_info` volta `OK` |
+
+### 6.6 Desligar e recomeçar
+
+- `docker compose down`: para tudo e **mantém** os dados.
+- `docker compose down -v`: para tudo e **apaga** os bancos; na próxima subida, rode a coleção de novo.
+
+### 6.7 Problemas comuns
+
+| Sintoma | Causa provável | Solução |
+| --- | --- | --- |
+| contêiner preso em `starting` ou `unhealthy` | disco cheio ou Docker sem memória | libere espaço e rode `docker compose up -d` de novo |
+| `port is already allocated` | outro programa usando a porta | feche o programa ou altere a porta à esquerda em `docker-compose.yml` |
+| medidas não chegam ao Orion | porta 1883 bloqueada na rede | teste com `Test-NetConnection` e troque de rede |
+| testes da Etapa 3 falham por tempo | Wokwi parado ou em aba de segundo plano | deixe a aba visível e rode a coleção de novo |
+| painel vazio | a coleção ainda não rodou (sem subscrição do Cygnus, não há histórico) | rode a coleção e aguarde algumas medidas |
 
 ## 7. Subscrições
 

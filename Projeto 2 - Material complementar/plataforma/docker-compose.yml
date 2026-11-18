@@ -177,6 +177,9 @@ services:
       - GF_NEWS_NEWS_FEED_ENABLED=false
     volumes:
       - grafana:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./painel-estufa.json:/etc/grafana/painel/painel-estufa.json:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/api/health"]
       interval: 5s

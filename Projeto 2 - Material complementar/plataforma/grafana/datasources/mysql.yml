@@ -1,0 +1,15 @@
+# Fonte de dados criada automaticamente ao subir o Grafana.
+# O uid é o mesmo referenciado pelos painéis em painel-estufa.json.
+apiVersion: 1
+datasources:
+  - name: mysql
+    type: mysql
+    uid: ag4esac5komiob
+    access: proxy
+    url: mysql-db:3306
+    user: grafana
+    isDefault: true
+    jsonData:
+      database: fei
+    secureJsonData:
+      password: grafana2026

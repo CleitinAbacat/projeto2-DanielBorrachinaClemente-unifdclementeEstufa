@@ -1,0 +1,8 @@
+# Carrega painel-estufa.json automaticamente ao subir o Grafana.
+apiVersion: 1
+providers:
+  - name: estufa
+    type: file
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/painel
