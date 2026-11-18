@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.~lock.*#
+~$*
+Thumbs.db
+.DS_Store
+Projeto 2 - Material complementar/postman/postman/
+Projeto 2 - Material complementar/postman/.postman/
