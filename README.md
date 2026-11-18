@@ -188,8 +188,11 @@ Usamos o Claude Code como assistente durante a integração e a documentação. 
   - Configuração da atualização automática do painel (5 s) pela API do Grafana e exportação de `plataforma/painel-estufa.json`.
 - **Documentação:** revisao das tabelas técnicas deste README com dados do código e da coleção, e rascunho das seções 1, 2, 3 (calibração), 5.4, 6, 7, 8, 9 e 10, revisadas e editadas pelo grupo.
 
-O relatório técnico (respostas R1 a R8) **não** foi escrito com IA.
+O relatório técnico (respostas R1 a R8) **não** foi escrito com IA. Salvo exceção para a imagem da arquitetura que foi gerada com base na arquitetura escrita pelo grupo (presente neste readme)
 
 ## 12. Referências
 
-_Material das aulas, documentação do FIWARE e da HiveMQ, e qualquer outra fonte consultada._
+(Documentos das aulas)
+(https://docs.wokwi.com/)
+(https://fiware-tutorials.readthedocs.io/en/latest/getting-started.html)
+(https://learning.postman.com/)
